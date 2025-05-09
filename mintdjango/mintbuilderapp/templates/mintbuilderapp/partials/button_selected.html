@@ -1,0 +1,19 @@
+<button name="button_selected"
+        _=  "on mousedown or touchstart wait for mouseup or touchend or 700
+            if the result is 700 -- long press
+                get confirm('Voulez-vous vraiment supprimer {{ participant }} ?')
+                if the result is true -- confirm delete
+                    set @value to '( {{ participant.pk }}, 0 )'
+                else
+                    set @value to '( {{ participant.pk }}, 1 )'
+                end
+            else -- short press
+                set @value to '( {{ participant.pk }}, 2 )'
+            end"
+        hx-post="{{ to_group.pk }}/button_unselected/"
+        hx-target="#detail"
+        hx-swap="outerHTML"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        class="bg-{{ color }}-500 hover:bg-{{ color }}-700 text-white font-bold py-2 px-4 mx-1 my-2 border-2 border-{{ color }}-500 hover:border-transparent rounded">
+    {{ participant }} <!-- {{ to_group.participant_set.all }} -->
+</button>

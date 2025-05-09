@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mint Builder</title>
+        <script src="https://unpkg.com/htmx.org@2.0.4"
+                integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+                crossorigin="anonymous">
+        </script>
+        <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            #fade-me-out.htmx-added {
+                opacity: 0;
+            }
+            #fade-me-out.htmx-swapping {
+                opacity: 0;
+            }
+            #fade-me-out {
+                opcacity: 1;
+                transition: all 1s ease-out;
+            }
+        </style>
+    </head>
+    <body class="bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-300 text-emerald-800 font-sans p-8"
+          id="detail"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% csrf_token %}
+    <div class="container mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-4">Let's Mint some Teams</h2>
+        {% if message %}
+            <button id="fade-me-out"
+                 hx-get='{% url "mintbuilderapp:clear_section" %}'
+                 hx-swap="outerHTML swap:1s">
+                {{ message }}
+            </button>
+        {% endif %}
+        <div name="tablist" class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+            {% for poll_group in poll.group_set.all|dictsort:"tab_position" %}
+                {% if poll_group.color != 'zinc' %}
+                    <button name="tab"
+                            hx-get='{% url "mintbuilderapp:detail" poll.chat_id poll_group.pk %}'
+                            hx-target="#detail"
+                            hx-swap="outerHTML"
+                            class="bg-{{ poll_group.color }}-500 hover:bg-{{ poll_group.color }}-700 text-white font-bold py-2 px-4">
+                        {{ poll_group }}
+                    </button>
+                {% endif %}
+            {% endfor %}
+            {% if group.number_of_participants > 0 %}
+            <button name="new_tab"
+                    hx-post='{% url "mintbuilderapp:new_request" poll.chat_id %}'
+                    hx-target="#detail"
+                    hx-swap="outerHTML"
+                    class="bg-emerald-600 hover:bg-emerald-800 text-white font-bold py-2 px-4">
+                +
+            </button>
+            {% endif %}
+        </div>
+        <div class="mb-4 rounded-sm rounded-t-none border border-{{ group.color }}-500 ">
+        {% for participant in poll.participant_set.all|dictsort:"participant_name" %}
+            {% if participant.group and participant.group.pk != group.pk %}
+                {% include "mintbuilderapp/partials/button_selected_locked.html" with participant=participant color=participant.group.color to_group=participant.group %}
+            {% elif participant in group.participant_set.all %}
+                {% include "mintbuilderapp/partials/button_selected.html" with participant=participant color=group.color to_group=group %}
+            {% elif not participant.group and participant not in group.participant_set.all %}
+                {% include "mintbuilderapp/partials/button_unselected.html" with participant=participant color=group.color to_group=group %}
+            {% endif %}
+        {% endfor %}
+        <button name="add_participant"
+                class="bg-transparent hover:bg-{{ group.color }}-500 text-{{ group.color }}-700 font-semibold hover:text-white py-2 px-4 mx-1 my-2 border border-{{ group.color }}-500 hover:border-transparent rounded"
+                hx-post='{% url "mintbuilderapp:add_participant" poll.chat_id group_id %}'
+                hx-prompt="Nom du participant"
+                hx-target="#detail">
+            +
+        </button>
+        </div>
+        <div>
+            <button name="roll"
+                    hx-post='{% url "mintbuilderapp:teams" poll.chat_id %}'
+                    hx-target="#detail"
+                    hx-swap="outerHTML"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                Créer Équipes
+            </button>
+            <button name="réinit"
+                        hx-put='{% url "mintbuilderapp:init" poll.chat_id %}'
+                        hx-target="#detail"
+                        hx-swap="outerHTML"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                    Réinitialiser
+            </button>
+            <button _= "on mousedown wait for mouseup or 700 log the result -- maybe have to add touchstart and touchend
+                        if the result is 700
+                            log 'long'
+                        else
+                            log 'short'
+                        end"
+                    class="bg-blue-500">
+                Click Me!
+            </button>
+        </div>
+    </div>
+
+</body>
+</html>

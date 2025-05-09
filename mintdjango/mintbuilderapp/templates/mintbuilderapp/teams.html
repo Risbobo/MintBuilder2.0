@@ -1,0 +1,33 @@
+<body class="bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-300 text-emerald-800 font-sans p-8" id="teams">
+{% csrf_token %}
+<div class="container mx-auto text-center">
+    {% for team in poll.team_set.all %}
+    {% if team.participant_set.count > 0 %}
+    <h3> Team {{ forloop.counter }} </h3>
+    {% for participant in team.participant_set.all %}
+    <button name="button_selected"
+            class="bg-emerald-500 text-white font-bold py-2 px-4 border border-emerald-500 rounded">
+        {{ participant }}
+    </button>
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+    <div>
+        <button name="request"
+                hx-post='{% url "mintbuilderapp:new_request" poll.chat_id %}'
+                hx-target="#detail"
+                hx-swap="outerHTML"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+            Retour
+        </button>
+        <button name="roll_again"
+                hx-put='{% url "mintbuilderapp:reroll_teams" poll.chat_id %}'
+                hx-target="#detail"
+                hx-swap="outerHTML"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+            Retirer Équipes
+        </button>
+    </div>
+</div>
+
+</body>

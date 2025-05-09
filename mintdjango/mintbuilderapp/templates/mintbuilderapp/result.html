@@ -1,0 +1,15 @@
+<form action="{% url 'mintbuilderapp:teams' poll.chat_id %}" method="post">
+    {% csrf_token %}
+    <h1>{{ poll.chat_name }}</h1>
+    {% for team in poll.team_set.all %}
+    {% if team.participant_set.all %}
+    <h3> Team {{ forloop.counter }} </h3>
+    <ul>
+        {% for part in team.participant_set.all %}
+        <li> {{ part.participant_name }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endfor %}
+    <input type="submit" value="Reroll">
+</form>
