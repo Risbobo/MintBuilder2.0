@@ -14,7 +14,7 @@ def index_view(request):
 def select_button_view(request, chat_id, group_id):
     user_id = int(request.POST.get('button_unselected'))
     user = get_object_or_404(Participant, pk=user_id)
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     group = get_object_or_404(Group, pk=group_id)
     # Check if user is in no group
     # (important for concurrency i.e. the user has been added in a group by another request)
@@ -34,7 +34,7 @@ def select_button_view(request, chat_id, group_id):
 def unselect_button_view(request, chat_id, group_id):
     user_id = int(request.POST.get('button_selected'))
     user = get_object_or_404(Participant, pk=user_id)
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     # unselect user
     group = get_object_or_404(Group, pk=group_id)
     # Check if user is indeed in the targeted group
@@ -46,7 +46,7 @@ def unselect_button_view(request, chat_id, group_id):
 
 # group_id is group.pk
 def detail(request, chat_id, group_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     # Remove tabs of empty groups by defaulting the group to zinc and putting it at the end of the list of groups
     for group in poll.group_set.all():
         if group.number_of_participants() == 0 and group.color != 'zinc' and group.pk != group_id:
@@ -65,10 +65,10 @@ def detail(request, chat_id, group_id):
 
 
 def add_participant(request, chat_id, group_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     user_name = request.POST.get('new_participant')
     # TODO : 1st and 2nd name control
-    null_participants = Participant.objects.filter(poll=None)#get(chat_id=0).participant_set.all()
+    null_participants = Participant.objects.filter(poll=None)
     if len(null_participants) == 0:
         new_participant = Participant.objects.create(participant_name=user_name, participant_id=0)
         poll.participant_set.add(new_participant)
@@ -85,7 +85,7 @@ def add_participant(request, chat_id, group_id):
 def remove_participant(request, chat_id, group_id):
     user_id = int(request.POST.get("confirm_delete_but"))
     user_todelete = get_object_or_404(Participant, pk=user_id)
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     group = user_todelete.group_in_poll(poll)
     user_todelete.group.remove(group)
     team = user_todelete.team_in_poll(poll)
@@ -96,7 +96,7 @@ def remove_participant(request, chat_id, group_id):
 
 
 def edit_poll_param(request, chat_id, group_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     new_max = request.POST.get('max_participant')
     new_size = request.POST.get('team_size')
     poll.max_participant = new_max
@@ -106,7 +106,7 @@ def edit_poll_param(request, chat_id, group_id):
 
 
 def new_request(request, chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     # Look for first zinc (empty) group
     for group in poll.group_set.all().order_by('tab_position'):
         if group.color == 'zinc':
@@ -120,7 +120,7 @@ def new_request(request, chat_id):
 
 
 def initialize(request, chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     for i, group in enumerate(poll.group_set.all()):
         group.color = 'zinc'
         group.tab_position = i
@@ -134,7 +134,7 @@ def generate_teams(request, chat_id):
     '''
     Generate teams if they don't exist already or if they are not valid
     '''
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     teams = poll.team_set.all()
     participants = poll.participant_set.all()
     # If some requests or the teams size are not respected, clear the team then roll them
@@ -161,7 +161,7 @@ def generate_teams(request, chat_id):
 
 
 def clear_teams(chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     teams = poll.team_set.all()
     for team in teams:
         team.participant_set.clear()
@@ -178,5 +178,5 @@ def clear_section(request):
 
 
 def result(request, chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    poll = get_object_or_404(Poll, pk=chat_id)
     return render(request, "mintbuilderapp/result.html", {"poll": poll})

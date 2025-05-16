@@ -14,14 +14,14 @@
         {% endfor %}
         <div>
             <button name="request"
-                    hx-post='{% url "mintbuilderapp:new_request" poll.chat_id %}'
+                    hx-post='{% url "mintbuilderapp:new_request" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
                 Retour
             </button>
             <button name="roll_again"
-                    hx-put='{% url "mintbuilderapp:reroll_teams" poll.chat_id %}'
+                    hx-put='{% url "mintbuilderapp:reroll_teams" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
@@ -45,7 +45,7 @@
                     class="center w-4/5 bg-transparent">
                 <form name="add_part_form"
                       method="dialog"
-                      hx-post='{% url "mintbuilderapp:post_teams" poll.chat_id %}'
+                      hx-post='{% url "mintbuilderapp:post_teams" poll.pk %}'
                       hx-swap="none"
                       class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
                     <p>Veux-tu vraiment poster sur {{ poll.chat_name }} les équipes tirées ?</p>

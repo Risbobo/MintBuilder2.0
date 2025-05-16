@@ -8,8 +8,8 @@ from django.contrib import admin
 
 
 class Poll(models.Model):
-    chat_id = models.IntegerField()
-    poll_id = models.IntegerField(default=0)
+    chat_id = models.BigIntegerField()
+    poll_id = models.BigIntegerField(default=0)
     chat_name = models.CharField(max_length=200)
     team_size = models.IntegerField(default=6)
     max_participant = models.IntegerField(default=12)
@@ -123,7 +123,7 @@ class Participant(models.Model):
     team = models.ManyToManyField(Team)
     group = models.ManyToManyField(Group)
     participant_name = models.CharField(max_length=200)
-    participant_id = models.IntegerField(default=0)
+    participant_id = models.BigIntegerField(default=0)
     surname = models.CharField(max_length=200, default=None, null=True)
     username = models.CharField(max_length=200, default=None, null=True)
     verbose = models.BooleanField(default=False)

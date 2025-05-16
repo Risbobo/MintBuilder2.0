@@ -34,7 +34,7 @@
                 class="center w-4/5 bg-transparent">
             <form name="edit_param_form"
                   method="dialog"
-                  hx-post='{% url "mintbuilderapp:edit_poll_param" poll.chat_id group.pk %}'
+                  hx-post='{% url "mintbuilderapp:edit_poll_param" poll.pk group.pk %}'
                   hx-target="#detail"
                   class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
                 <p>
@@ -80,7 +80,7 @@
             {% for poll_group in poll.group_set.all|dictsort:"tab_position" %}
                 {% if poll_group.color != 'zinc' %}
                     <button name="tab"
-                            hx-get='{% url "mintbuilderapp:detail" poll.chat_id poll_group.pk %}'
+                            hx-get='{% url "mintbuilderapp:detail" poll.pk poll_group.pk %}'
                             hx-target="#detail"
                             hx-swap="outerHTML"
                             class="bg-{{ poll_group.color }}-500 hover:bg-{{ poll_group.color }}-700 text-white font-bold py-2 px-4">
@@ -90,7 +90,7 @@
             {% endfor %}
             {% if group.number_of_participants > 0 %}
             <button name="new_tab"
-                    hx-post='{% url "mintbuilderapp:new_request" poll.chat_id %}'
+                    hx-post='{% url "mintbuilderapp:new_request" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
                     class="bg-emerald-600 hover:bg-emerald-800 text-white font-bold py-2 px-4">
@@ -123,7 +123,7 @@
                 class="center w-4/5 bg-transparent">
             <form id="confirm_delete_form"
                   method="dialog"
-                  hx-post='{% url "mintbuilderapp:remove_participant" poll.chat_id group.pk %}'
+                  hx-post='{% url "mintbuilderapp:remove_participant" poll.pk group.pk %}'
                   hx-target="#detail"
                   class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
                 <output id="delete_label" class="mb-2">--</output><br>
@@ -160,7 +160,7 @@
                 class="center w-4/5 bg-transparent">
             <form name="add_part_form"
                   method="dialog"
-                  hx-post='{% url "mintbuilderapp:add_participant" poll.chat_id group.pk %}'
+                  hx-post='{% url "mintbuilderapp:add_participant" poll.pk group.pk %}'
                   hx-target="#detail"
                   class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
                 <label class="mb-2" for="new_participant">Nom du participant:</label><br>
@@ -176,14 +176,14 @@
         </div>
         <div>
             <button name="roll"
-                    hx-post='{% url "mintbuilderapp:teams" poll.chat_id %}'
+                    hx-post='{% url "mintbuilderapp:teams" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
                 Créer Équipes
             </button>
             <button name="réinit"
-                        hx-put='{% url "mintbuilderapp:init" poll.chat_id %}'
+                        hx-put='{% url "mintbuilderapp:init" poll.pk %}'
                         hx-target="#detail"
                         hx-swap="outerHTML"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">

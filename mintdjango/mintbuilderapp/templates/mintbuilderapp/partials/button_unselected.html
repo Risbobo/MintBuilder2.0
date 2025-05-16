@@ -5,7 +5,7 @@
                 then set #confirm_delete's @part_id to '{{ participant.pk }}'
                 then trigger showModal on #confirm_delete
             else -- short press
-                set @value to '{{ participant.pk }}' log 'short'
+                set @value to '{{ participant.pk }}'
             end"
         hx-post="{{ to_group.pk }}/button_selected/"
         hx-swap="outerHTML"
