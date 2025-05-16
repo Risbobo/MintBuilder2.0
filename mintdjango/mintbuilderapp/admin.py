@@ -10,7 +10,11 @@ class ParticipantPollInline(admin.TabularInline):
 
 
 class ParticipantTeamInline(admin.TabularInline):
-    model = Participant
+    model = Participant.team.through
+
+
+class ParticipantGroupInline(admin.TabularInline):
+    model = Participant.group.through
 
 
 class PollAdmin(admin.ModelAdmin):
@@ -22,7 +26,7 @@ class PollAdmin(admin.ModelAdmin):
 
 class UserAdmin(admin.ModelAdmin):
     inlines = [ParticipantPollInline]
-    list_display = ["participant_name", "participant_id", "number_of_polls"]
+    list_display = ["participant_name", "surname", "username", "number_of_polls"]
     list_filter = ["participant_name"]
     search_fields = ["participant_name"]
 
@@ -33,7 +37,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 
 class GroupAdmin(admin.ModelAdmin):
-    inlines = [ParticipantTeamInline]
+    inlines = [ParticipantGroupInline]
     list_display = ["color", "number_of_participants", "poll"]
 
 

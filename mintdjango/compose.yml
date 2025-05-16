@@ -13,8 +13,11 @@ services:
       - .env
 
   django-web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: mintdjango-docker
+    command: gunicorn --bind 0.0.0.0:8000 --workers 3 mintdjango.wsgi:application
     ports:
       - "8000:8000"
     environment:
@@ -31,6 +34,16 @@ services:
       DATABASE_PORT: ${DATABASE_PORT}
     env_file:
       - .env
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python3 mintbuilderbot.py
+    env_file:
+      - .env
+    depends_on:
+      - django-web
 
 volumes:
   postgres_data:

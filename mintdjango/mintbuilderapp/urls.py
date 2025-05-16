@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, bot
 
 app_name = "mintbuilderapp"
 urlpatterns = [
@@ -10,12 +10,14 @@ urlpatterns = [
     path("<int:chat_id>/<int:group_id>", views.detail, name="detail"),
     path("<int:chat_id>/new_request", views.new_request, name="new_request"),
     path("<int:chat_id>/<int:group_id>/add_participant/", views.add_participant, name="add_participant"),
-    #path("<int:chat_id>/<int:group_id>/remove_participant/", views.remove_participant, name="remove_participant"),
+    path("<int:chat_id>/<int:group_id>/remove_participant/", views.remove_participant, name="remove_participant"),
+    path("<int:chat_id>/<int:group_id>/edit_poll_param/", views.edit_poll_param, name="edit_poll_param"),
     path("<int:chat_id>/init", views.initialize, name="init"),
     path("<int:chat_id>/teams", views.generate_teams, name="teams"),
     path("<int:chat_id>/reroll_teams", views.reroll_teams, name="reroll_teams"),
+    path("<int:chat_id>/post_teams", bot.post_teams, name="post_teams"),
     path("<int:chat_id>/result", views.result, name="result"),
     path("<int:chat_id>/<int:group_id>/button_unselected/", views.unselect_button_view, name='but_unselect'),
     path("<int:chat_id>/<int:group_id>/button_selected/", views.select_button_view, name='but_select'),
-    path("<int:chat_id>/<int:group_id>/button_selected_locked/", views.select_lock_button_view, name='but_select_lock'),
+    # path("<int:chat_id>/<int:group_id>/button_selected_locked/", views.select_lock_button_view, name='but_select_lock'),
 ]

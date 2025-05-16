@@ -1,4 +1,5 @@
 import random
+import math
 
 from django.db import models
 from django.contrib import admin
@@ -7,11 +8,12 @@ from django.contrib import admin
 
 
 class Poll(models.Model):
-    # TODO : add question_text to personalise prompt
     chat_id = models.IntegerField()
+    poll_id = models.IntegerField(default=0)
     chat_name = models.CharField(max_length=200)
     team_size = models.IntegerField(default=6)
     max_participant = models.IntegerField(default=12)
+    is_telegram =models.BooleanField(default=False)
 
     def last_group(self):
         groups = list(self.group_set.all().order_by('tab_position'))
@@ -27,6 +29,8 @@ class Poll(models.Model):
         return False
 
     def teamsize_respected(self):
+        if self.team_set.count() > math.ceil(self.participant_set.count() / self.team_size):
+            return False
         for team in self.team_set.all():
             if team.number_of_participants() > self.team_size:
                 return False
@@ -37,9 +41,27 @@ class Poll(models.Model):
             request = list(group.participant_set.all())
             for i, part1 in enumerate(request):
                 for part2 in request[i:]:
-                    if part1.team != part2.team:
+
+                    if part1.team_in_poll(self) != part2.team_in_poll(self):
                         return False
         return True
+
+    def check_homonym(self, participant):
+        participant.verbose = False
+        for other_participant in self.participant_set.all():
+            if participant.participant_name == other_participant.participant_name:
+                participant.verbose = True
+                other_participant.verbose = True
+
+    def inner_check_homonym(self):
+        participant_list = self.participant_set.all()
+        for i in range(len(participant_list)):
+            participant = participant_list[i]
+            participant.verbose = False
+            for other_participant in participant_list[i:]:
+                if participant.participant_name == other_participant.participant_name:
+                    participant.verbose = True
+                    other_participant.verbose = True
 
     @admin.display(
         ordering='chat_name',
@@ -96,13 +118,15 @@ class Group(models.Model):
         return self.color
 
 
-#TODO : update model with 1st and 2nd name + homonym control
 class Participant(models.Model):
     poll = models.ManyToManyField(Poll)
-    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
-    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True)
-    participant_id = models.IntegerField()
+    team = models.ManyToManyField(Team)
+    group = models.ManyToManyField(Group)
     participant_name = models.CharField(max_length=200)
+    participant_id = models.IntegerField(default=0)
+    surname = models.CharField(max_length=200, default=None, null=True)
+    username = models.CharField(max_length=200, default=None, null=True)
+    verbose = models.BooleanField(default=False)
 
     @admin.display(
         ordering='participant_name',
@@ -111,5 +135,32 @@ class Participant(models.Model):
     def number_of_polls(self):
         return self.poll.count()
 
+    def group_in_poll(self, poll: Poll):
+        group = filter(lambda gr: gr in poll.group_set.all(), self.group.all())
+        l = list(group)
+        if len(l) == 0:
+            return None
+        else:
+            assert len(l) == 1
+            return l[0]
+
+    def team_in_poll(self, poll: Poll):
+        team = filter(lambda t: t in poll.team_set.all(), self.team.all())
+        l = list(team)
+        if len(l) == 0:
+            return None
+        else:
+            assert len(l) == 1
+            return l[0]
+
+    def is_telegram(self):
+        return self.participant_id != 0
+
     def __str__(self):
-        return self.participant_name
+        if not self.verbose:
+            return self.participant_name
+        else:
+            if self.surname:
+                return str(self.participant_name) + " " + str(self.surname)
+            else:
+                return str(self.participant_name) + " '" + str(self.username) + "'"

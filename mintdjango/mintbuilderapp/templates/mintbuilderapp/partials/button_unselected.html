@@ -1,14 +1,11 @@
 <button name="button_unselected"
         _=  "on mousedown or touchstart wait for mouseup or touchend or 700
             if the result is 700 -- long press
-                get confirm('Voulez-vous vraiment supprimer {{ participant }} ?')
-                if the result is true -- confirm delete
-                    set @value to '( {{ participant.pk }}, 0 )'
-                else
-                    set @value to '( {{ participant.pk }}, 1 )'
-                end
+                set #confirm_delete's @part_name to '{{ participant }}'
+                then set #confirm_delete's @part_id to '{{ participant.pk }}'
+                then trigger showModal on #confirm_delete
             else -- short press
-                set @value to '( {{ participant.pk }}, 2 )'
+                set @value to '{{ participant.pk }}' log 'short'
             end"
         hx-post="{{ to_group.pk }}/button_selected/"
         hx-swap="outerHTML"
