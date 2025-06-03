@@ -5,7 +5,7 @@
     <div class="container mx-auto text-center">
         {% for team in teams %}
             <h3> Team {{ forloop.counter }} </h3>
-            {% for participant in team.participant_set.all %}
+            {% for participant in team %}
             <button name="button_selected"
                     class="bg-emerald-500 text-white font-bold py-2 px-4 mx-1 my-2 border border-emerald-500 rounded">
                 {{ participant }}
@@ -27,6 +27,7 @@
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
                 Retirer Équipes
             </button>
+            {% if poll.chat_id != 0 %}
             <button name="post_teams_but"
                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
                 _="on click trigger showModal on #post_teams">
@@ -64,6 +65,7 @@
                     </button>
                 </form>
             </dialog>
+            {% endif %}
         </div>
     </div>
 </body>

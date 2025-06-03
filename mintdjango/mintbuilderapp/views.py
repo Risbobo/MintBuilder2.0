@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseNotFound
 from django.template.response import TemplateResponse
+
+from .common.util.homonym import teams_to_string
 from .models import Poll, Participant, Team, Group
 from .common.util.team import random_team_generator
 
@@ -61,30 +63,65 @@ def detail(request, chat_id, group_id):
     part_groups = [(participant, participant.group_in_poll(poll))
                    for participant in poll.participant_set.all().order_by('participant_name')]
     return TemplateResponse(request, "mintbuilderapp/detail.html",
-                            {"poll": poll, "group": group, "part_groups": part_groups})
+                            {"poll": poll,
+                             "group": group,
+                             "part_groups": part_groups,
+                             "part_names": poll.participants_to_string()})
 
 
 def add_participant(request, chat_id, group_id):
     poll = get_object_or_404(Poll, pk=chat_id)
     user_name = request.POST.get('new_participant')
-    # TODO : 1st and 2nd name control
+    parse_name = user_name.split(' ')
+    print(parse_name)
+    first_name = parse_name[0]
+    print(first_name)
+    last_name = " ".join(parse_name[1:])
+    print(last_name)
     null_participants = Participant.objects.filter(poll=None)
     if len(null_participants) == 0:
-        new_participant = Participant.objects.create(participant_name=user_name, participant_id=0)
+        new_participant = Participant.objects.create(participant_name=first_name, participant_id=0)
+        if last_name:
+            new_participant.surname = last_name
+        else:
+            homonyms = Participant.objects.filter(participant_name=first_name)
+            for i in range(homonyms.count() + 1):
+                default_name = '#' + str(i)
+                if homonyms.filter(surname=default_name).count() == 0:
+                    new_participant.surname = default_name
         poll.participant_set.add(new_participant)
+        new_participant.save()
     else:
         new_participant = null_participants[0]
         new_participant.poll.clear()
         poll.participant_set.add(new_participant)
-        new_participant.participant_name = user_name
+        new_participant.participant_name = first_name
+        if last_name:
+            new_participant.surname = last_name
+        else:
+            homonyms = Participant.objects.filter(participant_name=first_name)
+            for i in range(homonyms.count() + 1):
+                default_name = '#' + str(i)
+                if homonyms.filter(surname=default_name).count() == 0:
+                    new_participant.surname = default_name
+        new_participant.participant_id = 0
         new_participant.save()
-    # TODO : add message if more than max size
-    return detail(request, chat_id, group_id)
+    message = {}
+    if poll.number_of_participants() > poll.max_participant:
+        message = {'message': "Attention, il y a maintenant {} personnes qui viennent alors que la limite de places "
+                             "est {}".format(poll.number_of_participants, poll.max_participant)}
+    to_render = detail(request, chat_id, group_id)
+    if message:
+        to_render.context_data.update(message)
+    return to_render  # detail(request, chat_id, group_id)
 
 
 def remove_participant(request, chat_id, group_id):
     user_id = int(request.POST.get("confirm_delete_but"))
-    user_todelete = get_object_or_404(Participant, pk=user_id)
+    try:
+        user_todelete = Participant.objects.get(pk=user_id)
+    except Participant.DoesNotExist:
+        return
     poll = get_object_or_404(Poll, pk=chat_id)
     group = user_todelete.group_in_poll(poll)
     user_todelete.group.remove(group)
@@ -111,9 +148,15 @@ def new_request(request, chat_id):
     for group in poll.group_set.all().order_by('tab_position'):
         if group.color == 'zinc':
             return detail(request, chat_id, group.pk)
+    # If too many request (17)
     if poll.group_set.count() > 17:
-        # TODO : something if too many groups
-        return HttpResponseNotFound("<h1>Trop de requêtes</h1>")
+        message = {
+            'message': "Attention, la limite du nombre de requête est atteinte. "
+                       "Impossible de créer une nouvelle requête".format()}
+        group = poll.group_set.all().order_by('tab_position')
+        to_render = detail(request, chat_id, group[0].pk)
+        to_render.context_data.update(message)
+        return to_render
     else:
         new_group = Group.objects.create(poll=poll, tab_position=poll.last_group() + 1)
         return detail(request, chat_id, new_group.pk)
@@ -140,8 +183,18 @@ def generate_teams(request, chat_id):
     # If some requests or the teams size are not respected, clear the team then roll them
     if not poll.request_respected() or not poll.teamsize_respected():
         clear_teams(chat_id)
+
+    # If a request is larger than the team sizes
+    largest_group_size = max([group.participant_set.count() for group in poll.group_set.all()])
+    if largest_group_size >= poll.team_size:
+        group_id = request.POST.get("roll")
+        message = {'message': "Attention, il y a une requête de {} personnes qui viennent alors que la taille des équipes "
+                              "est {}".format(largest_group_size, poll.team_size)}
+        to_render = detail(request, chat_id, group_id)
+        to_render.context_data.update(message)
+        return to_render
+
     # If teams are already rolled, show them as is
-    # TODO : request are larger than team size control
     if not poll.teams_created():
         requests = [group.request() for group in poll.group_set.all()]
         teams_created = random_team_generator(participants, groupements=requests, max_per_team=poll.team_size)
@@ -156,8 +209,9 @@ def generate_teams(request, chat_id):
             for team_member in team_created:
                 team.participant_set.add(team_member)
             team.save()
-    teams = [team for team in poll.team_set.all() if team.participant_set.count() > 0]
-    return render(request, "mintbuilderapp/teams.html", {"poll": poll, "teams": teams})
+    teams = [team.participant_set.all() for team in poll.team_set.all() if team.participant_set.count() > 0]
+    teams_string = teams_to_string(teams)
+    return render(request, "mintbuilderapp/teams.html", {"poll": poll, "teams": teams_string})
 
 
 def clear_teams(chat_id):

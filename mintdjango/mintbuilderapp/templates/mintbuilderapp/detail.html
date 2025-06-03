@@ -11,6 +11,7 @@
         <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
+    {% load mint_extras %}
     <body class="bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-300 text-emerald-800 font-sans p-8"
           id="detail"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
@@ -37,29 +38,34 @@
                   hx-post='{% url "mintbuilderapp:edit_poll_param" poll.pk group.pk %}'
                   hx-target="#detail"
                   class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
-                <p>
-                    <label class="float-left mb-4" for="max_participant">Places disponibles:</label>
-                    <input type="number"
-                           id="max_participant"
-                           name="max_participant"
-                           class="float-right"
-                           min="1"
-                           max="999"
-                           value="{{ poll.max_participant }}">
-                </p>
-                <p>
-                    <label class="float-left mb-4" for="team_size">Taille des équipes:</label>
-                    <input type="number"
-                           id="team_size"
-                           name="team_size"
-                           class="float-right"
-                           min="1"
-                           max="999"
-                           value="{{ poll.team_size }}">
-                </p>
-                <input type="submit"
-                       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-                       _="on click trigger closeModal on #edit_param">
+                <div>
+                    <p>
+                        <label class="float-left mb-4" for="max_participant">Places disponibles:</label>
+                        <input type="number"
+                               id="max_participant"
+                               name="max_participant"
+                               class="float-right"
+                               min="1"
+                               max="999"
+                               value="{{ poll.max_participant }}">
+                        </p>
+                    <br>
+                    <p>
+                        <label class="float-left mb-4" for="team_size">Taille des équipes:</label>
+                        <input type="number"
+                               id="team_size"
+                               name="team_size"
+                               class="float-right"
+                               min="1"
+                               max="999"
+                               value="{{ poll.team_size }}">
+                    </p>
+                    <br>
+                    <br>
+                    <input type="submit"
+                           class="center bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+                           _="on click trigger closeModal on #edit_param">
+                </div>
             </form>
         </dialog>
         {% if message %}
@@ -179,6 +185,7 @@
                     hx-post='{% url "mintbuilderapp:teams" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
+                    value="{{ group.pk }}"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
                 Créer Équipes
             </button>

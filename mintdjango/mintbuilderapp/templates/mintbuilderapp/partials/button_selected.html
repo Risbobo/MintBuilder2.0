@@ -12,5 +12,5 @@
         hx-swap="outerHTML"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         class="bg-{{ color }}-500 hover:bg-{{ color }}-700 text-white font-bold py-2 px-4 mx-1 my-2 border-2 border-{{ color }}-500 hover:border-transparent rounded">
-    {{ participant }} <!-- {{ to_group.participant_set.all }} -->
+    {{ part_names|get_item:participant.pk }} <!-- need to use a custom tag... -->
 </button>

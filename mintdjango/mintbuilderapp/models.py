@@ -10,6 +10,7 @@ from django.contrib import admin
 class Poll(models.Model):
     chat_id = models.BigIntegerField()
     poll_id = models.BigIntegerField(default=0)
+    message_id = models.BigIntegerField(default=0)
     chat_name = models.CharField(max_length=200)
     team_size = models.IntegerField(default=6)
     max_participant = models.IntegerField(default=12)
@@ -46,22 +47,24 @@ class Poll(models.Model):
                         return False
         return True
 
-    def check_homonym(self, participant):
-        participant.verbose = False
-        for other_participant in self.participant_set.all():
-            if participant.participant_name == other_participant.participant_name:
-                participant.verbose = True
-                other_participant.verbose = True
-
-    def inner_check_homonym(self):
-        participant_list = self.participant_set.all()
-        for i in range(len(participant_list)):
-            participant = participant_list[i]
-            participant.verbose = False
-            for other_participant in participant_list[i:]:
-                if participant.participant_name == other_participant.participant_name:
-                    participant.verbose = True
-                    other_participant.verbose = True
+    def participants_to_string(self):
+        first_names = set()
+        homonyms = set()
+        for member in self.participant_set.all():
+            first_name = member.participant_name
+            if first_name in first_names:
+                homonyms.add(first_name)
+            else:
+                first_names.add(first_name)
+        name_dict = {}
+        for member in self.participant_set.all():
+            first_name = member.participant_name
+            if first_name in homonyms:
+                last_name = member.surname if member.surname else member.username if member.username else "X"
+                name_dict[member.pk] = first_name + " " + last_name
+            else:
+                name_dict[member.pk] = first_name
+        return name_dict
 
     @admin.display(
         ordering='chat_name',
@@ -157,10 +160,4 @@ class Participant(models.Model):
         return self.participant_id != 0
 
     def __str__(self):
-        if not self.verbose:
-            return self.participant_name
-        else:
-            if self.surname:
-                return str(self.participant_name) + " " + str(self.surname)
-            else:
-                return str(self.participant_name) + " '" + str(self.username) + "'"
+        return self.participant_name
