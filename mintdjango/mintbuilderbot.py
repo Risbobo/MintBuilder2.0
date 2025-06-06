@@ -1,20 +1,15 @@
 import os
 import time
-from html.parser import HTMLParser
 
 import django
-from django.shortcuts import get_object_or_404
-from mintdjango.settings import DATABASES, INSTALLED_APPS
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mintdjango.settings')
 django.setup()
-from asgiref.sync import sync_to_async, async_to_sync
-from mintbuilderapp.models import Poll, Participant, Group
-from mintbuilderapp.common.util.team import random_team_generator
+from asgiref.sync import sync_to_async
 from mintbuilderapp.bot import *
 
 from telegram import Update, KeyboardButton, WebAppInfo, ReplyKeyboardMarkup
-from telegram.ext import Application, Updater, ContextTypes, CommandHandler, PollAnswerHandler, CallbackContext
-from telegram.constants import ChatType, ReactionType
+from telegram.ext import Application, ContextTypes, CommandHandler, PollAnswerHandler
+from telegram.constants import ChatType
 
 
 def command_log(cmd):
@@ -25,47 +20,50 @@ def command_log(cmd):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     command_log("start")
-    user = await sync_to_async(Participant.objects.get)(participant_name='user3')
-    #user = update.effective_user
-    #print(user)
-    chat_id = update.effective_chat
-    #print(chat_id)
-    #users = await sync_to_async(Participant.objects.all)()
-    #random_user = list(users)[0]
-    await update.message.reply_text(f"Here is a user from the database : {user}")
+    text = "Hello ! Je suis MintBuilder ! \n" \
+           "Je m'occupe de créer des sondages pour organiser des quiz et de tirer les équipes.\n" \
+           "Je peux créer un sondage avec la commande /poll et je peux tirer les équipes avec la commande /team. " \
+           "Pour plus de détails, vous pouvez utiliser la commande /help.\n" \
+           "Amusez-vous bien !"
+    await update.message.reply_text(text=text)
 
 
 async def launch_app(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("app")
     if update.effective_chat.type==ChatType.PRIVATE:
-        kb = [
-            [KeyboardButton(
-                "Let's Mint some Teams!",
-                web_app=WebAppInfo('https://www.google.com/')
-                #web_app=WebAppInfo(os.getenv("WEBAPP_URL"))
-            )],
-            [KeyboardButton(
-                "Let's Mint some Teams but other!",
-                web_app=WebAppInfo('https://www.google.com/')
-                # web_app=WebAppInfo(os.getenv("WEBAPP_URL"))
-            )]
-        ]
-        await update.message.reply_text("Ok", reply_markup=ReplyKeyboardMarkup(kb))
+        user_chats = await sync_to_async(get_polls)(update.effective_user.id)
+        if user_chats == 0 or len(user_chats) == 0:
+            await update.message.reply_text("Tu ne fais partie d'aucun chat")
+        else :
+            kb = [[KeyboardButton(text=chat_name + "\n{}/{}/new_request".format(os.getenv("WEBAPP_URL"), chat_id),
+                                 web_app=WebAppInfo('https://www.google.com/'))
+                                #web_app=WebAppInfo("{}/{}/new_request".format(os.getenv("WEBAPP_URL"), chat_id)))
+                  for chat_name, chat_id in user_chats.items()]]
+            await update.message.reply_text("\U0001F44D \U0001F44D", reply_markup=ReplyKeyboardMarkup(kb))
     else:
-        #await update.message.reply_text(text=f"<a href='{os.getenv("WEBAPP_URL")}'> Link </>", parse_mode='HTML')
-        #await update.effective_chat.send_message(text=f"<a href='{os.getenv("WEBAPP_URL")}'> Link </>", parse_mode='HTML')
-        await update.effective_chat.send_message(text=f"link : https://www.google.com/", parse_mode='HTML')
+        chat_id = await sync_to_async(get_poll)(update.effective_chat.id)
+        if chat_id == 0:
+            await update.message.reply_text("Ce chat n'a pas de sondage")
+        else:
+            link = "{}/{}/new_request".format(os.getenv("WEBAPP_URL"), chat_id)
+            await update.effective_chat.send_message(text="[Lien vers l'app({})](https://www.google.com/)".format(link), parse_mode='Markdown')
 
 
 async def generate_teams(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("team")
     text = await sync_to_async(bot_generate_teams)(update.effective_chat.id)
     parse_message = update.message.text.split(' ')[1:]
     if len(parse_message) > 0:
         text += ("\n \n(Si vous voulez faire des requêtes, "
                  "vous pouvez utiliser la commande /request avant de lancer cette commande)")
-    await update.effective_chat.send_message(text=text, parse_mode='Markdown')
+    if text == 0:
+        await update.message.reply_text("Ce chat n'a pas de sondage")
+    else:
+        await update.effective_chat.send_message(text=text, parse_mode='Markdown')
 
 
 async def create_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("poll")
     try:
         poll = await sync_to_async(Poll.objects.get)(chat_id=update.effective_chat.id)
         await context.bot.stop_poll(chat_id=poll.chat_id, message_id=poll.message_id)
@@ -84,7 +82,6 @@ async def create_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     poll.poll_id=new_poll.poll.id
     poll.message_id = new_poll.id
-    print("new poll id : ", new_poll.id)
     await sync_to_async(poll.save)()
 
 
@@ -92,11 +89,10 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     answer = update.poll_answer.option_ids
     user = update.effective_user
     poll_id = update.poll_answer.poll_id
-    # print(user, type(user), user.first_name)
     # The user comes
     if answer == (0,):
         number_of_participant, max_participant, chat_id = await sync_to_async(participant_coming)(user, poll_id)
-        if number_of_participant >= max_participant:
+        if chat_id and number_of_participant >= max_participant:
             await context.bot.send_message(chat_id=chat_id,
                                            text="Attention, il y a maintenant {} personnes qui viennent "
                                                 "alors que la limite de places est {}".format(number_of_participant,
@@ -115,27 +111,34 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def add_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("add")
     chat_id = update.effective_chat.id
     parse_name = update.message.text.split(' ')[1:]
     if len(parse_name) > 0:
         number_of_participant, max_participant = await sync_to_async(bot_add_participant)(parse_name, chat_id)
-        await context.bot.set_message_reaction(chat_id=chat_id,
-                                               message_id=update.message.message_id,
-                                               reaction=['\U0001F44D'])
-        if number_of_participant >= max_participant:
-            await update.message.reply_text("Attention, il y a maintenant {} personnes qui viennent "
-                                            "alors que la limite de places est {}".format(number_of_participant,
-                                                                                          max_participant))
+        if number_of_participant == 0 and max_participant == 0:
+            await update.message.reply_text("Ce chat n'a pas de sondage")
+        else:
+            await context.bot.set_message_reaction(chat_id=chat_id,
+                                                   message_id=update.message.message_id,
+                                                   reaction=['\U0001F44D'])
+            if number_of_participant >= max_participant:
+                await update.message.reply_text("Attention, il y a maintenant {} personnes qui viennent "
+                                                "alors que la limite de places est {}".format(number_of_participant,
+                                                                                              max_participant))
     else:
         await update.message.reply_text("Il n'y a personne à ajouter")
 
 
 async def remove_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("remove")
     chat_id = update.effective_chat.id
     parse_name = update.message.text.split(' ')[1:]
     if len(parse_name) > 0:
         state = await sync_to_async(bot_remove_participant)(parse_name, chat_id)
-        if state == 0:
+        if state == -1:
+            await update.message.reply_text("Ce chat n'a pas de sondage")
+        elif state == 0:
             await update.message.reply_text("Je n'ai trouvé personne avec ce nom")
         elif state == 1:
             await context.bot.set_message_reaction(chat_id=chat_id,
@@ -148,23 +151,26 @@ async def remove_participant(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def participant_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("participant")
     chat_id = update.effective_chat.id
     text = await sync_to_async(bot_participant_list)(chat_id)
     await update.effective_chat.send_message(text=text, parse_mode='Markdown')
 
 
 async def make_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("request")
     chat_id = update.effective_chat.id
     message = update.message.text
     command_end = message.find(' ')
-    #print(command_end)
     if command_end < 0 or len(message[command_end+1:]) == 0 :
         text = await sync_to_async(print_request)(chat_id=chat_id)
         await update.effective_chat.send_message(text=text, parse_mode='Markdown')
     else:
         participants = [participant.strip() for participant in message[command_end + 1:].split(',')]
         state, arg = await sync_to_async(add_request)(chat_id=chat_id, request_list=participants)
-        if state == 0:
+        if state == -1:
+            await update.message.reply_text("Ce chat n'a pas de sondage")
+        elif state == 0:
             await update.message.reply_text("Je n'ai pas trouvé {}".format(arg))
         elif state == 1:
             await context.bot.set_message_reaction(chat_id=chat_id,
@@ -180,6 +186,7 @@ async def make_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def set_max(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("max")
     chat_id = update.effective_chat.id
     parse_number = update.message.text.split(' ')[1:]
     if len(parse_number) > 0:
@@ -189,7 +196,9 @@ async def set_max(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(text="La valeur entrée n'est pas un entier")
         else:
             new_val = await sync_to_async(bot_set_max)(chat_id, val)
-            if new_val == val:
+            if new_val < 0 :
+                await update.message.reply_text("Ce chat n'a pas de sondage")
+            elif new_val == val:
                 await context.bot.set_message_reaction(chat_id=chat_id,
                                                        message_id=update.message.message_id,
                                                        reaction=['\U0001F44D'])
@@ -200,6 +209,7 @@ async def set_max(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    command_log("help")
     text = ["*Voici mes commandes :*", '- /start : Affiche un message d\'introduction',
             '- /poll : Crée un sondage à 3 réponses dont seule la première est positive.',
             '- /add <nom> : Permet d\'ajouter un-e participant-e au prochain quiz.'
@@ -224,7 +234,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def git_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_log("git")
-    text = "[Link to GitHub](https://github.com/Risbobo/MintBuilderPublic)"
+    text = "[Link to GitHub](https://github.com/Risbobo/MintBuilder2.0)"
     await update.message.reply_text(text=text, parse_mode='Markdown')
 
 

@@ -14,6 +14,23 @@ from .common.util.team import random_team_generator
 # Here are functions that interact with the bot from the app's "side"
 
 
+def get_polls(participant_id):
+    try:
+        participant = Participant.objects.get(participant_id=participant_id)
+        return { poll.chat_name : poll.pk for poll in participant.poll.all()}
+    except Participant.DoesNotExist:
+        return 0
+
+
+def get_poll(group_id):
+    try:
+        poll = Poll.objects.get(chat_id=group_id)
+        return poll.pk
+    except Poll.DoesNotExist:
+        return 0
+
+
+
 def print_teams_message(teams_created):
     teams_string = teams_to_string(teams_created)
 
@@ -40,9 +57,10 @@ def post_teams(request, chat_id):
 
 
 def bot_generate_teams(chat_id):
-    # poll = await sync_to_async(get_object_or_404)(Poll, chat_id=update.effective_chat)
-    #print(chat_id)
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoesNotExist:
+        return 0
     participants = poll.participant_set.all()
     requests = poll.group_set.all()
     requests = [group.request() for group in requests]
@@ -57,7 +75,10 @@ def bot_generate_teams(chat_id):
 
 
 def clear_poll(chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoesNotExist:
+        return
     for team in poll.team_set.all():
         team.participant_set.clear()
         #team.save()
@@ -69,7 +90,10 @@ def clear_poll(chat_id):
 
 
 def participant_coming(user:telegram.User, poll_id):
-    poll = get_object_or_404(Poll, poll_id=poll_id)
+    try:
+        poll = Poll.objects.get(poll_id=poll_id)
+    except Poll.DoesNotExist:
+        return 0, 0, None
     first_name = user.first_name
     last_name = user.last_name
     username = user.username
@@ -99,7 +123,10 @@ def participant_coming(user:telegram.User, poll_id):
 
 
 def participant_notcoming(user:telegram.User, poll_id):
-    poll = get_object_or_404(Poll, poll_id=poll_id)
+    try:
+        poll = Poll.objects.get(poll_id=poll_id)
+    except Poll.DoesNotExist:
+        return
     user_id = user.id
     try:
         user_todelete = Participant.objects.get(participant_id=user_id)
@@ -114,7 +141,10 @@ def participant_notcoming(user:telegram.User, poll_id):
 
 
 def bot_add_participant(parse_name, chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return 0, 0
     first_name = parse_name[0]
     last_name = " ".join(parse_name[1:])
     null_participants = Participant.objects.filter(poll=None)
@@ -150,7 +180,10 @@ def bot_add_participant(parse_name, chat_id):
 
 
 def bot_remove_participant(parse_name, chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return -1
     first_name = parse_name[0]
     last_name = " ".join(parse_name[1:])
     participant_query = Participant.objects.filter(poll=poll, participant_name=first_name)
@@ -181,8 +214,10 @@ def bot_remove_participant(parse_name, chat_id):
 
 
 def bot_participant_list(chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
-    #print(poll.pk)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return "Ce chat n'a pas de sondage"
     participant_dict = poll.participants_to_string()
     text = ["Il y a actuellement {} personnes qui viennent \U0001F44D \n"
                     "(La limite de places est {})\n"
@@ -193,7 +228,10 @@ def bot_participant_list(chat_id):
 
 
 def add_request(chat_id, request_list):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return -1
     participants_list = []
     groups = set()
     for participant in request_list:
@@ -247,7 +285,10 @@ def add_request(chat_id, request_list):
 
 
 def print_request(chat_id):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return "Ce chat n'a pas de sondage"
     participants_list = []
     if poll.group_set.count() == 0:
         return "Il n'y a aucune requête"
@@ -266,7 +307,10 @@ def print_request(chat_id):
 
 
 def bot_set_max(chat_id, max_val):
-    poll = get_object_or_404(Poll, chat_id=chat_id)
+    try:
+        poll = Poll.objects.get(chat_id=chat_id)
+    except Poll.DoeaNotExist:
+        return -1
     poll.max_participant = max_val
     poll.save()
     return poll.max_participant

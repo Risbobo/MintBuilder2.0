@@ -61,7 +61,7 @@ def detail(request, chat_id, group_id):
     if group.color == 'zinc':
         group.pick_color(groups)
     part_groups = [(participant, participant.group_in_poll(poll))
-                   for participant in poll.participant_set.all().order_by('participant_name')]
+                   for participant in poll.participant_set.all().order_by('participant_name', 'surname')]
     return TemplateResponse(request, "mintbuilderapp/detail.html",
                             {"poll": poll,
                              "group": group,
@@ -73,12 +73,10 @@ def add_participant(request, chat_id, group_id):
     poll = get_object_or_404(Poll, pk=chat_id)
     user_name = request.POST.get('new_participant')
     parse_name = user_name.split(' ')
-    print(parse_name)
     first_name = parse_name[0]
-    print(first_name)
     last_name = " ".join(parse_name[1:])
-    print(last_name)
     null_participants = Participant.objects.filter(poll=None)
+    # If there is no "empty" participant
     if len(null_participants) == 0:
         new_participant = Participant.objects.create(participant_name=first_name, participant_id=0)
         if last_name:
@@ -91,6 +89,7 @@ def add_participant(request, chat_id, group_id):
                     new_participant.surname = default_name
         poll.participant_set.add(new_participant)
         new_participant.save()
+    # If there is a participant with no poll, we overwrite them
     else:
         new_participant = null_participants[0]
         new_participant.poll.clear()

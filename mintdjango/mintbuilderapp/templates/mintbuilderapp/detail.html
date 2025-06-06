@@ -19,7 +19,7 @@
         <h2 class="text-3xl font-semibold mb-4">Let's Mint some Teams</h2>
         <button name="team_param"
                 _="on click trigger showModal on #edit_param"
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                class="bg-gradient-to-r from-lime-500 via emerald-500 to-teal-500 hover:bg-gradient-to-br text-white text-lg font-bold py-2 px-4 mb-3 rounded-full">
             {{ poll.chat_name }}
         </button>
         <dialog id="edit_param"
@@ -39,28 +39,32 @@
                   hx-target="#detail"
                   class="bg-green-200 shadow-md rounded px-6 pt-4 pb-6 mb-4">
                 <div>
-                    <p>
-                        <label class="float-left mb-4" for="max_participant">Places disponibles:</label>
-                        <input type="number"
+                    <div class="grid gap-y-2 grid-cols-3">
+                        <div class="col-span-2">
+                            <label class="object-left mb-4" for="max_participant">Places disponibles:</label>
+                        </div>
+                        <div class="col-span-1">
+                            <input type="number"
                                id="max_participant"
                                name="max_participant"
-                               class="float-right"
+                               class="object-right"
                                min="1"
                                max="999"
                                value="{{ poll.max_participant }}">
-                        </p>
-                    <br>
-                    <p>
-                        <label class="float-left mb-4" for="team_size">Taille des équipes:</label>
-                        <input type="number"
+                        </div>
+                        <div class="col-span-2">
+                            <label class="object-left mb-4" for="team_size">Taille des équipes:</label>
+                        </div>
+                        <div class="col-span-1">
+                            <input type="number"
                                id="team_size"
                                name="team_size"
-                               class="float-right"
+                               class="object-right"
                                min="1"
                                max="999"
                                value="{{ poll.team_size }}">
-                    </p>
-                    <br>
+                        </div>
+                    </div>
                     <br>
                     <input type="submit"
                            class="center bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
@@ -90,7 +94,11 @@
                             hx-target="#detail"
                             hx-swap="outerHTML"
                             class="bg-{{ poll_group.color }}-500 hover:bg-{{ poll_group.color }}-700 text-white font-bold py-2 px-4">
-                        {{ poll_group }}
+                        {% if poll_group.color == 'emerald' %}
+                            <em> mint </em>
+                        {% else %}
+                            {{ poll_group }}
+                        {% endif %}
                     </button>
                 {% endif %}
             {% endfor %}
@@ -180,20 +188,20 @@
             </form>
         </dialog>
         </div>
-        <div>
+        <div class="flex flex-col items-center">
             <button name="roll"
                     hx-post='{% url "mintbuilderapp:teams" poll.pk %}'
                     hx-target="#detail"
                     hx-swap="outerHTML"
                     value="{{ group.pk }}"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                    class="w-3/5 bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 border-b border-teal-700 rounded-t">
                 Créer Équipes
             </button>
             <button name="réinit"
                         hx-put='{% url "mintbuilderapp:init" poll.pk %}'
                         hx-target="#detail"
                         hx-swap="outerHTML"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                        class="w-3/5 bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-b">
                     Réinitialiser
             </button>
         </div>
